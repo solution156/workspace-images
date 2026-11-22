@@ -1,61 +1,54 @@
-# KubeWorkspace — Workspace Images
+# Workspace Images
 
-Source Dockerfiles/installer cho Kasm workspace images. Mỗi image có version riêng trong `images.json`; version này không phải version CI Core hay version browser/Kasm.
+Repository cho các image minh họa (workspace/tooling images) + pipeline build-primary.
 
-## Kiến trúc
+## Cấu trúc repo
 
-`.gitlab-ci.yml` include **CI Core v2.1.0** `/templates/workspace-parent.yaml`.
-Parent validate source, sinh `generated-child.yml` và trigger child cùng project/commit.
-Core chứa logic chung; repo này chỉ chứa catalog, source và event workflow.
+- `.gitlab-ci.yml` — parent pipeline entry point
+- `images/` — Dockerfile của từng image
+- `images.json` — inventory ảnh (name, Dockerfile, tags, build args...)
+- `shared/` — scripts/chunks dùng chung giữa các pipeline stage
+- `out/` — chứa artifacts, catalog, scan, trace sau mỗi job
 
-**Trước khi push consumer:** phải publish core tag mới có file mới. Không ghi đè core tag `v2.0.0` đang dùng ở môi trường khác. Include ref và `CI_CORE_REF` phải luôn khớp.
+## Pipeline stages
 
-## Hành vi
+1. `validate` (ci-tools)
+2. `plan` (generate child)
+3. `build` (docker build)
+4. `scan` (trivy)
+5. `patch` (harbor snapshot)
+6. `verify` (runtime + trivy gate)
+7. `sbom` (cyclonedx)
+8. `evidence` (release.py)
+9. `sign` (cosign)
+10. `promote` (harbor promote)
+11. `release` (publish)
+12. `cleanup`
 
-- MR, feature/bugfix/hotfix: FAST, chỉ image bị ảnh hưởng diff, build/runtime smoke **không push**.
-- Protected main: FULL, **tất cả enabled images**, tag `main` sau gates.
-- Protected release branch `release/<image>/vX.Y.Z`: chỉ image đó, tag `rc-X.Y.Z`.
-- Protected Git tag `<image>/vX.Y.Z` hoặc `release/<image>/vX.Y.Z`: chỉ image đó, tag immutable `X.Y.Z` + GitLab Release.
-- Nếu cần chọn image thủ công: Run pipeline trên development branch/protected main, `IMAGE_SELECTION=chrome` hoặc `chrome,firefox` hoặc `all`. Push/MR phải để `auto`.
-- FAST initial commit không có diff base: báo no-changes, không tự phát hành tất cả. MR hoặc manual selection để test rõ ràng.
+## Liên kết với ci-core
 
-FULL DAG: build → scan → patch → verify Trivy/runtime → SBOM → evidence → sign → promote → release (tag only).
-Mỗi image độc lập, artifact nằm `out/<id>/`; candidate/patched digests được khóa và kiểm tra, không rebuild khi promote.
+Pipeline này `include` template từ project `https://gitlab.com/hermes156/ci-core`,
+file chính: `/templates/workspace-parent.yaml`
+- `CI_CORE_PROJECT` = `hermes156/ci-core`
+- `CI_CORE_REF`   = `v2.1.0`
 
-## Bật VS Code đúng quy trình
+## Build & Trigger
 
-1. `images.json` khai báo `extension_lock` và `runtime_check` cho VS Code.
-2. Run pipeline trên development branch với `EXTENSION_BOOTSTRAP=vscode`, giữ `IMAGE_SELECTION=auto`.
-3. Tải artifact `out/vscode/extensions.lock` từ job `lock:vscode`.
-4. Review/commit lock thật vào `images/vscode/configs/extensions.lock`, rồi đổi `enabled:true`.
-5. Chạy FAST/MR trước protected main. Không cần cài VS Code trên host.
+Các image sẽ được build và push lên Harbor registry theo `images.json`.
+Pipeline cần các biến môi trường sau (đặt ở GitLab CI/CD settings):
+- `HARBOR_REGISTRY`: registry host (vd: `rd-harbor-secops.servicemicro.net`)
+- `HARBOR_PROJECT`: project trong Harbor (vd: `kubeworkspace`)
+- `HARBOR_USER`, `HARBOR_PASSWORD`: credential cho Harbor
+- `COSIGN_PRIVATE_KEY`, `COSIGN_PASSWORD`: bằng chứng digital signing
 
-Normal validation require lock khớp toàn bộ manifest, không chỉ kiểm tra file có chữ. Không dùng version giả hoặc bỏ gate để xanh.
-
-## Mở rộng
-
-Thêm `images/<id>/Dockerfile` + row vào catalog: `id`, `repository`, `version`, `enabled`, `context`, `dockerfile`, `platform`, `depends_on`. Hiện hỗ trợ `context=.` và `linux/amd64`.
-
-- Tài nguyên shared phải khai báo dependency; một shared change chỉ chọn image phụ thuộc trong FAST.
-- Optional `runtime_check` là script reviewed trong repo, stream vào container qua stdin.
-- Optional `extension_lock` cho image cần bootstrap extension; không hardcode tên image trong core.
-- Dockerfiles cuối cùng USER1000, source COPY phải tồn tại trong context.
-- `.dockerignore` loại `.ci-tools`, `.docker-job`, reports/out và Git metadata khỏi build context.
-
-## Môi trường và quyền
-
-Core runbook: `ci-core/docs/PIPELINE_GUIDE_VI.md` trong repo CI Core.
-Cần GitLab job-token allowlist, protected main/release refs, robot Harbor và Cosign secrets cho FULL/RELEASE; FAST chỉ cần pull-only nếu base private. DOCKER_AUTH_CONFIG là JSON để Runner pull private job images. Không tự tạo lại CI_SERVER_URL/CI_JOB_TOKEN.
-
-Local tests không cần GitLab; exact workspace builds cần reachable registry/mirror, mạng download installers, CA/proxy. Khi host không resolve Harbor nội bộ thì không thể kết luận Chrome build exact đã pass. GUI/VNC/UAT phải test ở hạ tầng Kasm thật.
-
-## Build ngoài CI
-
-Context luôn là repo root:
+## How to run locally
 
 ```bash
-docker buildx build --load --pull --platform linux/amd64 \
-  -f images/chrome/Dockerfile -t local/sdwf-chrome:dev .
+docker build -t test-image .
+docker run --rm -it test-image /bin/sh
 ```
 
-Chạy smoke cơ bản không thay thế UAT. Không prune daemon dùng chung hoặc lưu credential vào image/artifacts.
+## Notes
+
+- Never use `latest` tag for production images.
+- All generated artifacts under `out/` are ephemeral.
