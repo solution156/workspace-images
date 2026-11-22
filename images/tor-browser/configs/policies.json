@@ -1,0 +1,25 @@
+{
+    "policies": {
+        "PromptForDownloadLocation": false,
+        "DontCheckDefaultBrowser": true,
+        "DisableTelemetry": true,
+        "DisableFirefoxStudies": true,
+        "DisablePocket": true,
+        "OverrideFirstRunPage": "",
+        "OverridePostUpdatePage": "",
+        "ExtensionSettings": {
+            "uBOLiteRedux@raymondhill.net": {
+                "installation_mode": "force_installed",
+                "install_url": "file:///opt/tor-browser/Browser/distribution/ublock-origin-lite.xpi",
+                "private_browsing": true,
+                "default_area": "navbar"
+            }
+        },
+        "Preferences": {
+            "browser.tabs.inTitlebar": {
+                "Value": 1,
+                "Status": "locked"
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+.git
+.gitlab-ci.yml
+.gitignore
+.ci-tools
+.docker-job
+.cache
+out
+reports
+release
+**/__pycache__
+**/*.log
+**/*.pid
+**/.DS_Store
+generated-child.yml
+pipeline-plan.json
+README.md

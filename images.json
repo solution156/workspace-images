@@ -1,0 +1,91 @@
+{
+  "schema_version": 2,
+  "images": [
+    {
+      "id": "ubuntu",
+      "repository": "ubuntu-noble-desktop",
+      "context": ".",
+      "dockerfile": "images/ubuntu/Dockerfile",
+      "platform": "linux/amd64",
+      "enabled": true,
+      "version": "0.1.0",
+      "depends_on": []
+    },
+    {
+      "id": "chrome",
+      "repository": "chrome",
+      "context": ".",
+      "dockerfile": "images/chrome/Dockerfile",
+      "platform": "linux/amd64",
+      "enabled": true,
+      "version": "0.1.0",
+      "depends_on": [
+        "shared/browser/cleanup.sh",
+        "shared/browser/ublock_extension.json"
+      ]
+    },
+    {
+      "id": "chrome-gpu",
+      "repository": "chrome-gpu",
+      "context": ".",
+      "dockerfile": "images/chrome-gpu/Dockerfile",
+      "platform": "linux/amd64",
+      "enabled": true,
+      "version": "0.1.0",
+      "depends_on": [
+        "shared/browser/cleanup.sh",
+        "shared/browser/ublock_extension.json"
+      ]
+    },
+    {
+      "id": "firefox",
+      "repository": "firefox",
+      "context": ".",
+      "dockerfile": "images/firefox/Dockerfile",
+      "platform": "linux/amd64",
+      "enabled": true,
+      "version": "0.1.0",
+      "depends_on": [
+        "shared/browser/cleanup.sh"
+      ]
+    },
+    {
+      "id": "opera-browser",
+      "repository": "opera-browser",
+      "context": ".",
+      "dockerfile": "images/opera-browser/Dockerfile",
+      "platform": "linux/amd64",
+      "enabled": true,
+      "version": "0.1.0",
+      "depends_on": [
+        "shared/browser/cleanup.sh"
+      ]
+    },
+    {
+      "id": "tor-browser",
+      "repository": "tor-browser",
+      "context": ".",
+      "dockerfile": "images/tor-browser/Dockerfile",
+      "platform": "linux/amd64",
+      "enabled": true,
+      "version": "0.1.0",
+      "depends_on": []
+    },
+    {
+      "id": "vscode",
+      "repository": "vscode",
+      "context": ".",
+      "dockerfile": "images/vscode/Dockerfile",
+      "platform": "linux/amd64",
+      "enabled": false,
+      "version": "0.1.0",
+      "depends_on": [],
+      "extension_lock": {
+        "manifest": "images/vscode/configs/extensions.txt",
+        "lock": "images/vscode/configs/extensions.lock",
+        "generated": "/opt/dwf-vscode/extensions.lock.generated"
+      },
+      "runtime_check": "images/vscode/validate/runtime.sh"
+    }
+  ]
+}

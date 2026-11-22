@@ -1,0 +1,43 @@
+# Publish ci-core v2.1.0 FIRST, then commit this consumer. Never move v2.0.0.
+# include is evaluated before YAML variables: keep this pin and CI_CORE_REF equal.
+include:
+  - project: sdigitalworkforce/sdigitalworkforce-ci-core
+    ref: v2.1.0
+    file: /templates/workspace-parent.yaml
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      variables:
+        PIPELINE_KIND: "fast"
+    # Only suppress duplicate development push pipelines, not main/release.
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^(feature|bugfix|hotfix)\// && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^(release\/)?[a-z0-9][a-z0-9._-]*\/v[0-9]+\.[0-9]+\.[0-9]+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
+      variables:
+        PIPELINE_KIND: "release"
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_COMMIT_REF_PROTECTED == "true" && ($CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "web")'
+      variables:
+        PIPELINE_KIND: "full"
+    - if: '$CI_COMMIT_BRANCH =~ /^release\/[a-z0-9][a-z0-9._-]*\/v[0-9]+\.[0-9]+\.[0-9]+$/ && $CI_COMMIT_REF_PROTECTED == "true" && ($CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "web")'
+      variables:
+        PIPELINE_KIND: "full"
+    - if: '$CI_COMMIT_BRANCH =~ /^(feature|bugfix|hotfix)\/[a-zA-Z0-9][a-zA-Z0-9._\/-]*$/ && ($CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "web")'
+      variables:
+        PIPELINE_KIND: "fast"
+    - when: never
+
+variables:
+  CI_CORE_PROJECT: "sdigitalworkforce/sdigitalworkforce-ci-core"
+  CI_CORE_REF: "v2.1.0"
+  HARBOR_REGISTRY: "rd-harbor-secops.servicemicro.net"
+  HARBOR_PROJECT: "sdigitalworkforce"
+  IMAGE_SELECTION: "auto"
+  EXTENSION_BOOTSTRAP: ""
+  GIT_DEPTH: "0"
+  TRIVY_SCAN_SEVERITY: "HIGH,CRITICAL"
+  TRIVY_GATE_SEVERITY: "CRITICAL"
+  TRIVY_PATCH_SEVERITY: "HIGH,CRITICAL"
+  AUTO_PATCH_OS: "true"
+  PATCH_PACKAGE_EXCLUDE: "google-chrome-stable firefox firefox-esr opera-stable microsoft-edge-stable"
+  DEVGUARD_ENABLED: "false"

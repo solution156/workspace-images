@@ -1,0 +1,12 @@
+.git/
+.ci-tools/
+.docker-job/
+.cache/
+__pycache__/
+*.py[cod]
+*.log
+*.pid
+out/
+reports/
+generated-child.yml
+pipeline-plan.json
