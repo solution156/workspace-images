@@ -1,4 +1,4 @@
-# SDigitalWorkforce — Workspace Images
+# KubeWorkspace — Workspace Images
 
 Source Dockerfiles/installer cho Kasm workspace images. Mỗi image có version riêng trong `images.json`; version này không phải version CI Core hay version browser/Kasm.
 

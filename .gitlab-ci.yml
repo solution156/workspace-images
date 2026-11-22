@@ -1,7 +1,7 @@
 # Publish ci-core v2.1.0 FIRST, then commit this consumer. Never move v2.0.0.
 # include is evaluated before YAML variables: keep this pin and CI_CORE_REF equal.
 include:
-  - project: sdigitalworkforce/sdigitalworkforce-ci-core
+  - project: kubeworkspace/kubeworkspace-ci-core
     ref: v2.1.0
     file: /templates/workspace-parent.yaml
 
@@ -28,10 +28,10 @@ workflow:
     - when: never
 
 variables:
-  CI_CORE_PROJECT: "sdigitalworkforce/sdigitalworkforce-ci-core"
+  CI_CORE_PROJECT: "kubeworkspace/kubeworkspace-ci-core"
   CI_CORE_REF: "v2.1.0"
   HARBOR_REGISTRY: "rd-harbor-secops.servicemicro.net"
-  HARBOR_PROJECT: "sdigitalworkforce"
+  HARBOR_PROJECT: "kubeworkspace"
   IMAGE_SELECTION: "auto"
   EXTENSION_BOOTSTRAP: ""
   GIT_DEPTH: "0"
