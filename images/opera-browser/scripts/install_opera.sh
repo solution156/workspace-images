@@ -7,7 +7,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 OPERA_VERSION="${OPERA_VERSION:-}"
 OPERA_DEB_SHA256="${OPERA_DEB_SHA256:-}"
-OPERA_DEB_URL="https://deb.opera.com/opera-stable/pool/non-free/o/opera-stable/opera-stable_${OPERA_VERSION}_amd64.deb"
+OPERA_DEB_URL="https://get.geo.opera.com/pub/opera/desktop/${OPERA_VERSION}/linux/opera-stable_${OPERA_VERSION}_amd64.deb"
 OPERA_DEB_FILE="/tmp/opera-stable.deb"
 POLICY_SRC="${INST_DIR}/policies.json"
 POLICY_DST_DIR="/etc/opt/opera/policies/managed"

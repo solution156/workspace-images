@@ -32,6 +32,26 @@ file chính: `/templates/workspace-parent.yaml`
 - `CI_CORE_PROJECT` = `hermes156/ci-core`
 - `CI_CORE_REF`   = `v2.1.0`
 
+## Image versioning and promotion
+
+Each enabled entry in `images.json` owns an independent semantic version.
+The pipeline derives stable tags from that version:
+
+- protected `main` pipeline → `{version}-dev`
+- protected `release/<image>/v{version}` branch → `{version}-rc`
+- protected release tag → `{version}`
+
+A unique candidate tag is built first. Every security and runtime gate consumes
+the resulting immutable digest; Harbor promotion only adds the stable tag after
+all checks and Cosign signing succeed. Production releases are immutable.
+
+## Proxy configuration
+
+Set `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` only in GitLab CI/CD Variables.
+Do not put proxy URLs in Dockerfiles or install scripts. The shared CI template
+forwards configured values to DinD and BuildKit. The runner host and internal
+registry CA trust must be configured by the runner administrator.
+
 ## Build & Trigger
 
 Các image sẽ được build và push lên Harbor registry theo `images.json`.
