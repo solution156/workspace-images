@@ -45,6 +45,31 @@ if [[ "$mode" == "locked" ]]; then
   done < "$lockfile"
 fi
 
+# Marketplace downloads can time out through a proxy. Retry only transient
+# network failures; a bad ID or missing version still fails on the first try.
+install_extension() {
+  local spec="$1" attempt=1 output
+  local transient='ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ESOCKETTIMEDOUT|socket hang up'
+  while :; do
+    if output="$(code --install-extension "$spec" --extensions-dir "$extensions_dir" --force 2>&1)"; then
+      [[ -z "$output" ]] || printf '%s\n' "$output"
+      return 0
+    fi
+    [[ -z "$output" ]] || printf '%s\n' "$output" >&2
+    if ! grep -Eqi "$transient" <<< "$output"; then
+      echo "[ERROR] Failed to install $spec" >&2
+      return 1
+    fi
+    if (( attempt >= 3 )); then
+      echo "[ERROR] Failed to install $spec after 3 attempts" >&2
+      return 1
+    fi
+    echo "[WARN] Transient network error for $spec (attempt ${attempt}/3); retrying in 5s" >&2
+    sleep 5
+    attempt=$((attempt + 1))
+  done
+}
+
 printf '[INFO] VS Code version: '; code --version | head -n 1
 for id in "${required[@]}"; do
   spec="$id"
@@ -52,7 +77,7 @@ for id in "${required[@]}"; do
   echo "[INFO] Installing $spec"
   # Installing into a controlled directory ensures persistent HOME mounts do not
   # shadow the image's baseline extensions. No silent skip for missing IDs.
-  code --install-extension "$spec" --extensions-dir "$extensions_dir" --force
+  install_extension "$spec"
 done
 
 if [[ "$mode" == "locked" ]]; then
