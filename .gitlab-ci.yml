@@ -33,7 +33,6 @@ variables:
   HARBOR_REGISTRY: "rd-harbor-secops.servicemicro.net"
   HARBOR_PROJECT: "kubeworkspace"
   IMAGE_SELECTION: "auto"
-  EXTENSION_BOOTSTRAP: ""
   GIT_DEPTH: "0"
   TRIVY_SCAN_SEVERITY: "HIGH,CRITICAL"
   TRIVY_GATE_SEVERITY: "CRITICAL"
