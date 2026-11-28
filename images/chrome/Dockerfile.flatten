@@ -1,0 +1,80 @@
+# Alternate Chrome build; the default pipeline still uses images/chrome/Dockerfile.
+# Build context must contain certs/CICD_Root.crt and src/install.sh supplied separately.
+# The installer or base image must supply /usr/local/bin/entrypoint-root.sh.
+# Pass the approved base registry path via --build-arg BASE_REGISTRY on an internal build host.
+ARG BASE_TAG="1.19.0"
+ARG BASE_IMAGE="core-ubuntu-noble"
+ARG BASE_REGISTRY="registry.example.invalid/project/kasmweb"
+
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS build
+
+ARG CHROME_VERSION="158.0.8127.88"
+ARG CHROME_DEB_URL=""
+ARG CHROME_SHA256=""
+
+USER root
+ENV HOME=/home/kasm-default-profile \
+    STARTUPDIR=/dockerstartup \
+    DEBIAN_FRONTEND=noninteractive
+WORKDIR $HOME
+
+COPY certs/CICD_Root.crt /usr/local/share/ca-certificates/CICD_Root.crt
+COPY src/ /tmp/src/
+
+RUN update-ca-certificates && \
+    CHROME_VERSION="$CHROME_VERSION" \
+    CHROME_DEB_URL="$CHROME_DEB_URL" \
+    CHROME_SHA256="$CHROME_SHA256" \
+    bash /tmp/src/install.sh && \
+    rm -rf /tmp/src
+
+FROM scratch
+COPY --from=build / /
+
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+    AUDIO_PORT="4901" \
+    DEBIAN_FRONTEND="noninteractive" \
+    DISPLAY=":1" \
+    DISTRO="ubuntu" \
+    GOMP_SPINCOUNT="0" \
+    HOME="/home/kasm-user" \
+    INST_SCRIPTS="/dockerstartup/install" \
+    KASMVNC_AUTO_RECOVER="true" \
+    KASM_VNC_PATH="/usr/share/kasmvnc" \
+    LANG="en_US.UTF-8" \
+    LANGUAGE="en_US:en" \
+    LC_ALL="en_US.UTF-8" \
+    LD_LIBRARY_PATH="/opt/libjpeg-turbo/lib64/:/usr/local/lib/:/usr/lib/x86_64-linux-gnu:/usr/lib/i386-linux-gnu:/usr/local/nvidia/lib:/usr/local/nvidia/lib64" \
+    MAX_FRAME_RATE="24" \
+    NO_VNC_PORT="6901" \
+    OMP_WAIT_POLICY="PASSIVE" \
+    PULSE_RUNTIME_PATH="/var/run/pulse" \
+    SDL_GAMECONTROLLERCONFIG="030000005e040000be02000014010000,XInput Controller,platform:Linux,a:b0,b:b1,x:b2,y:b3,back:b8,guide:b16,start:b9,leftstick:b10,rightstick:b11,leftshoulder:b4,rightshoulder:b5,dpup:b12,dpdown:b13,dpleft:b14,dpright:b15,leftx:a0,lefty:a1,rightx:a3,righty:a4,lefttrigger:b6,righttrigger:b7" \
+    SHELL="/bin/bash" \
+    START_PULSEAUDIO="1" \
+    STARTUPDIR="/dockerstartup" \
+    START_XFCE4="1" \
+    TERM="xterm" \
+    VNC_COL_DEPTH="24" \
+    VNCOPTIONS="-PreferBandwidth -DynamicQualityMin=4 -DynamicQualityMax=7 -DLP_ClipDelay=0" \
+    VNC_PORT="5901" \
+    VNC_RESOLUTION="1280x720" \
+    TZ="Etc/UTC" \
+    START_COMMAND="/dockerstartup/custom_startup.sh" \
+    PGREP="chrome" \
+    TARGET_UID="1000"
+
+# Non-root startup path. Do not rely on a build-time chmod of / surviving export.
+USER 1000
+RUN test "$(id -u)" = "$TARGET_UID" && \
+    test -d "$HOME" && \
+    test -x /usr/local/bin/entrypoint-root.sh && \
+    test -x /dockerstartup/kasm_default_profile.sh && \
+    test -x /dockerstartup/vnc_startup.sh && \
+    test -x /dockerstartup/kasm_startup.sh
+
+WORKDIR /home/kasm-user
+EXPOSE 4901 5901 6901
+# Set VNC_PW and VNC_VIEW_ONLY_PW at deployment, not in the image.
+ENTRYPOINT ["/usr/local/bin/entrypoint-root.sh", "/dockerstartup/kasm_default_profile.sh", "/dockerstartup/vnc_startup.sh", "/dockerstartup/kasm_startup.sh"]
+CMD ["--tail-log"]
